@@ -31,7 +31,7 @@ app.post("/postUser", (req, res) => {
     res.json(jsonData);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    res.status(500).json({ error: "Error con el servidor" });
   }
 });
 
@@ -45,17 +45,37 @@ app.put("/updateUser/:id", (req, res) => {
     }
 
     const jsonData = JSON.parse(readFileSync("users.json", "utf8"));
-    const usuarioExistente = jsonData.find((usuario) => usuario.id === id);
+    const userExistente = jsonData.find((user) => user.id === id);
 
-    if (!usuarioExistente) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
+    if (!userExistente) {
+      return res.status(404).json({ error: "User no encontrado" });
     }
 
-    Object.assign(usuarioExistente, nuevoUser);
+    Object.assign(userExistente, nuevoUser);
+    writeFileSync("users.json", JSON.stringify(jsonData, null, 2));
+    res.json(userExistente);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error con el servidor" });
+  }
+});
+
+app.delete("/deleteUser/:id", (req, res) => {
+  try {
+    const id = +req.params.id;
+
+    const jsonData = JSON.parse(readFileSync("users.json", "utf8"));
+    const userI = jsonData.findIndex((user) => user.id === id);
+
+    if (userI === -1) {
+      return res.status(404).json({ error: "User no encontrado" });
+    }
+
+    const userEliminado = jsonData.splice(userI, 1)[0];
 
     writeFileSync("users.json", JSON.stringify(jsonData, null, 2));
 
-    res.json(usuarioExistente);
+    res.json(userEliminado);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error interno del servidor" });

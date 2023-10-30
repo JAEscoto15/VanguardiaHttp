@@ -1,48 +1,67 @@
-const btnGet = document.querySelector(".btnGet");
-const btnPost = document.querySelector(".btnPost");
+import express from "express";
+import { readFileSync, writeFileSync } from "fs";
 
-const getUsers = async () => {
+const app = express();
+const port = 3000;
+
+app.use(express.json());
+
+app.get("/getUsers", async (req, res) => {
   try {
-    const res = await fetch("https://reqres.in/api/users");
-    const data = await res.json();
+    const jsonData = JSON.parse(readFileSync("users.json", "utf8"));
+    res.json(jsonData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
 
-    if (!res.ok) {
-      console.log(data.description);
-      return;
+app.post("/postUser", (req, res) => {
+  try {
+    const nuevoUser = req.body;
+
+    if (!nuevoUser || Object.keys(nuevoUser).length === 0) {
+      return res.status(400).json({ error: "Llenar los datos" });
     }
 
-    console.log(data.data);
+    const jsonData = JSON.parse(readFileSync("users.json", "utf8"));
+    jsonData.push(nuevoUser);
+
+    writeFileSync("users.json", JSON.stringify(jsonData, null, 2));
+    res.json(jsonData);
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
-};
+});
 
-const job = document.getElementById("job").value;
-const name = document.getElementById("nombre").value;
-
-const postUsers = async () => {
+app.put("/updateUser/:id", (req, res) => {
   try {
-    const datos = {
-      name: "Juan",
-      job: "job",
-    };
-    const res = await fetch("https://reqres.in/api/users", {
-      method: "POST",
-      "Content-Type": "application/json",
-      body: JSON.stringify(datos),
-    });
-    const data = await res.json();
+    const id = +req.params.id;
+    const nuevoUser = req.body;
 
-    if (!res.ok) {
-      console.log(data.description);
-      return;
+    if (!nuevoUser || Object.keys(nuevoUser).length === 0) {
+      return res.status(400).json({ error: "Llenar los datos" });
     }
 
-    console.log(data);
-  } catch (error) {
-    console.log(error);
-  }
-};
+    const jsonData = JSON.parse(readFileSync("users.json", "utf8"));
+    const usuarioExistente = jsonData.find((usuario) => usuario.id === id);
 
-btnGet.addEventListener("click", getUsers);
-btnPost.addEventListener("click", postUsers);
+    if (!usuarioExistente) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    Object.assign(usuarioExistente, nuevoUser);
+
+    writeFileSync("users.json", JSON.stringify(jsonData, null, 2));
+
+    res.json(usuarioExistente);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Servidor funca en el puerto ${port}`);
+});
